@@ -12,6 +12,10 @@ public class UnderstandModule : ModuleScript {
 	public static readonly Color32 INACTIVE_BUTTON_OUTLINE_COLOR = new Color32(0x44, 0x44, 0x44, 0xff);
 	public static readonly Color32 SELECTED_CELL_COLOR = new Color32(0x88, 0x88, 0x88, 0xff);
 	public static readonly Color32 PATH_CELL_COLOR = new Color32(0x55, 0x55, 0x55, 0xff);
+	public static readonly Color32 START_PATH_CELL_COLOR = new Color32(0x77, 0x55, 0x55, 0xff);
+	public static readonly Color32 START_SELECTED_PATH_CELL_COLOR = new Color32(0x99, 0x55, 0x55, 0xff);
+	public static readonly Color32 FINISH_PATH_CELL_COLOR = new Color32(0x55, 0x55, 0x77, 0xff);
+	public static readonly Color32 FINISH_SELECTED_PATH_CELL_COLOR = new Color32(0x55, 0x55, 0x99, 0xff);
 	public static readonly Color32 INACTIVE_SHAPE_COLOR = new Color32(0x33, 0x33, 0x33, 0xff);
 	public static readonly Color32 INACTIVE_SHAPE_OUTLINE_COLOR = new Color32(0xaa, 0xaa, 0xaa, 0xff);
 
@@ -71,18 +75,54 @@ public class UnderstandModule : ModuleScript {
 	}
 
 	private void OnCellHover(CellComponent cell) {
-		if (SelectedCell != null) SelectedCell.active = false;
+		if (SelectedCell != null) {
+			if (cell == SelectedCell) return;
+			OnCellHoverOver(SelectedCell);
+		}
 		SelectedCell = cell;
 		SelectedCell.active = true;
-		SelectedCell.color = SELECTED_CELL_COLOR;
-		// TODO: check adjacement
-		if (DrawingPath && !Path.Contains(cell.Coord)) Path.Add(cell.Coord);
+		if (Path.Count == 0) cell.color = SELECTED_CELL_COLOR;
+		else if (Path.First() == cell.Coord) cell.color = START_SELECTED_PATH_CELL_COLOR;
+		else if (DrawingPath == false && Path.Last() == cell.Coord) cell.color = FINISH_SELECTED_PATH_CELL_COLOR;
+		else cell.color = SELECTED_CELL_COLOR;
+		if (!DrawingPath) return;
+		Vector2Int lastCoord = Path.Last();
+		CellComponent lastCell = Cells[lastCoord.x][lastCoord.y];
+		if (Path.Count > 1 && Path.SkipLast(1).Last() == cell.Coord) {
+			lastCell.active = false;
+			Path = Path.SkipLast(1).ToList();
+			GameObject lastPath = ActivePath.Last();
+			ActivePath = ActivePath.SkipLast(1).ToList();
+			lastPath.SetActive(false);
+			InactivePath.Add(lastPath);
+			return;
+		}
+		if (Path.Contains(cell.Coord)) return;
+		Vector2Int dd = cell.Coord - lastCoord;
+		int dir = UnderstandPuzzle.DD.IndexOf(dd);
+		if (dir < 0) return;
+		GameObject path;
+		if (InactivePath.Count > 0) {
+			path = InactivePath.Last();
+			path.SetActive(true);
+			InactivePath = InactivePath.SkipLast(1).ToList();
+		} else {
+			path = Instantiate(PathPrefab);
+			path.transform.parent = GridContainer;
+			path.transform.localScale = Vector3.one;
+		}
+		path.transform.localPosition = lastCell.transform.localPosition + new Vector3(0, 0.0004f, 0);
+		path.transform.localRotation = Quaternion.Euler(0, 90f * dir, 0);
+		ActivePath.Add(path);
+		Path.Add(cell.Coord);
 	}
 
 	private void OnCellHoverOver(CellComponent cell) {
 		if (SelectedCell != cell) return;
-		if (Path.Contains(cell.Coord)) SelectedCell.color = PATH_CELL_COLOR;
-		else SelectedCell.active = false;
+		if (!Path.Contains(cell.Coord)) cell.active = false;
+		else if (Path.First() == cell.Coord) cell.color = START_PATH_CELL_COLOR;
+		else if (!DrawingPath && Path.Last() == cell.Coord) cell.color = FINISH_PATH_CELL_COLOR;
+		else cell.color = PATH_CELL_COLOR;
 		SelectedCell = null;
 	}
 
@@ -90,6 +130,7 @@ public class UnderstandModule : ModuleScript {
 		if (DrawingPath) {
 			if (Path.Last() != cell.Coord) return;
 			DrawingPath = false;
+			cell.color = FINISH_SELECTED_PATH_CELL_COLOR;
 			// TODO: validate path
 			return;
 		}
@@ -99,10 +140,13 @@ public class UnderstandModule : ModuleScript {
 			c.active = false;
 		}
 		DrawingPath = true;
+		InactivePath.AddRange(ActivePath);
+		foreach (GameObject path in ActivePath) path.SetActive(false);
+		ActivePath = new List<GameObject>();
 		Path = new List<Vector2Int>();
 		Path.Add(cell.Coord);
 		cell.active = true;
-		cell.color = PATH_CELL_COLOR;
+		cell.color = START_SELECTED_PATH_CELL_COLOR;
 	}
 
 	private ShapeComponent CreateButton(ShapeComponent.Shape shape, Vector3 position) {

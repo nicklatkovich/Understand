@@ -537,6 +537,7 @@ MonoBehaviour:
     type: 2}
   CellPrefab: {fileID: 114125962678359622, guid: b2be65f31438b904daad05e57a50f729,
     type: 2}
+  PathPrefab: {fileID: 1469321983091512, guid: 2b9452e2007a4424c8d32bc84acf9238, type: 2}
 --- !u!114 &114167927977048830
 MonoBehaviour:
   m_ObjectHideFlags: 1
