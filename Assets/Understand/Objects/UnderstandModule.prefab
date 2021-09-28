@@ -408,7 +408,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 2100000, guid: ea7383a11cc28a24cbea15073b68bf56, type: 2}
+  - {fileID: 2100000, guid: ac3772b0a2ffdb540a978137f4fa99bd, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -504,7 +504,7 @@ TextMesh:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1953965152777684}
-  m_Text: 1 / 7
+  m_Text: ?/?
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 0
@@ -514,7 +514,7 @@ TextMesh:
   m_FontSize: 90
   m_FontStyle: 0
   m_RichText: 1
-  m_Font: {fileID: 12800000, guid: 1ebe1d96973a920409b439b3a0e2bb63, type: 3}
+  m_Font: {fileID: 12800000, guid: 9fecc39da93197e48ac6e9b05c99d3cd, type: 3}
   m_Color:
     serializedVersion: 2
     rgba: 4278255615
@@ -532,12 +532,17 @@ MonoBehaviour:
   GridOutlinePrefab: {fileID: 1194320976421082, guid: b5116d7c1a453b442b269d7fdbf19eaf,
     type: 2}
   GridContainer: {fileID: 4677611491451122}
+  StageText: {fileID: 102642652672617344}
   Selectable: {fileID: 114245871756252828}
   ShapePrefab: {fileID: 114237125273767040, guid: 63e9ebf2220ac034fa21b1c8fea5fae0,
     type: 2}
   CellPrefab: {fileID: 114125962678359622, guid: b2be65f31438b904daad05e57a50f729,
     type: 2}
   PathPrefab: {fileID: 1469321983091512, guid: 2b9452e2007a4424c8d32bc84acf9238, type: 2}
+  RuleIndicatorPrefab: {fileID: 114429021495025978, guid: 85e6c1f4a39174d4ea6852bcf293183b,
+    type: 2}
+  ButtonPrefab: {fileID: 114870465518923920, guid: 7ad0f182fd37c18499f480ea24dc65c6,
+    type: 2}
 --- !u!114 &114167927977048830
 MonoBehaviour:
   m_ObjectHideFlags: 1

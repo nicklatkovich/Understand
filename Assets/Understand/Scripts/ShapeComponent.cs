@@ -32,7 +32,6 @@ public class ShapeComponent : MonoBehaviour {
 	}
 
 	public Texture GetTexture(Shape shape) {
-		Debug.Log(shape);
 		switch (shape) {
 			case Shape.NONE: return null;
 			case Shape.TRIANGLE_UP:
@@ -50,7 +49,6 @@ public class ShapeComponent : MonoBehaviour {
 
 	private void UpdateShape() {
 		Texture texture = GetTexture(_shape);
-		Debug.Log(texture);
 		if (texture == null) gameObject.SetActive(false);
 		else {
 			gameObject.SetActive(true);
