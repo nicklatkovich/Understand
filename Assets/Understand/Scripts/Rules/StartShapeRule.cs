@@ -1,12 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class StartAtRule : IRule {
+public class StartShapeRule : IRule {
 	public HashSet<ShapeComponent.Shape> shapes;
 
-	public StartAtRule(HashSet<ShapeComponent.Shape> shapes, string description) {
+	public StartShapeRule(HashSet<ShapeComponent.Shape> shapes, string description) {
 		this.shapes = shapes;
 		this.description = description;
 		this.fillingOrder = 10;

@@ -1,8 +1,25 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using UnityEngine;
 
 public class ShapeComponent : MonoBehaviour {
 	public enum Shape { NONE, TRIANGLE_UP, TRIANGLE_RIGHT, TRIANGLE_DOWN, TRIANGLE_LEFT, SQUARE, DIAMOND, CIRCLE, STAR, HEART }
+	public static readonly ReadOnlyCollection<Shape> ALL_SHAPES = System.Array.AsReadOnly(new[] {
+		Shape.NONE,
+		Shape.TRIANGLE_UP,
+		Shape.TRIANGLE_RIGHT,
+		Shape.TRIANGLE_DOWN,
+		Shape.TRIANGLE_LEFT,
+		Shape.SQUARE,
+		Shape.DIAMOND,
+		Shape.CIRCLE,
+		Shape.STAR,
+		Shape.HEART,
+	});
+
+	public static bool IsTriangle(ShapeComponent.Shape shape) {
+		return shape == Shape.TRIANGLE_UP || shape == Shape.TRIANGLE_RIGHT || shape == Shape.TRIANGLE_DOWN || shape == Shape.TRIANGLE_LEFT;
+	}
 
 	private static Dictionary<Shape, float> Rotations = new Dictionary<Shape, float> {
 		{ Shape.TRIANGLE_RIGHT, 90f },
