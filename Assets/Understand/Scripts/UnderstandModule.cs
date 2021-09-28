@@ -267,6 +267,7 @@ public class UnderstandModule : ModuleScript {
 		result.transform.localRotation = Quaternion.identity;
 		result.transform.localScale = Vector3.one;
 		result.shape = shape;
+		result.Selectable.Parent = Selectable;
 		return result;
 	}
 }
