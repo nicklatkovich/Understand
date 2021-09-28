@@ -8,13 +8,13 @@ public class StartShapeRule : IRule {
 	public StartShapeRule(HashSet<ShapeComponent.Shape> shapes, string description) {
 		this.shapes = shapes;
 		this.description = description;
-		this.fillingOrder = 10;
+		this.priority = 10;
 	}
 
-	public override void FillGrid(ShapeComponent.Shape[][] grid, bool[][] filledCell, List<Vector2Int> path) {
+	public override void FillGrid(ShapeComponent.Shape[][] grid, RuleGeneratorHelper gen, List<Vector2Int> path) {
 		Vector2Int start = path.First();
 		grid[start.x][start.y] = shapes.PickRandom();
-		filledCell[start.x][start.y] = true;
+		gen.filledCell[start.x][start.y] = true;
 	}
 
 	public override bool Valid(ShapeComponent.Shape[][] grid, List<Vector2Int> path) {

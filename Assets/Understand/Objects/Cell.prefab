@@ -38,6 +38,7 @@ GameObject:
   - component: {fileID: 33954567062951650}
   - component: {fileID: 64089073881295236}
   - component: {fileID: 23417472267641994}
+  - component: {fileID: 114588870455368656}
   m_Layer: 0
   m_Name: Texture
   m_TagString: Untagged
@@ -90,6 +91,7 @@ GameObject:
   - component: {fileID: 33249789468195880}
   - component: {fileID: 65200598406434426}
   - component: {fileID: 23927524601227228}
+  - component: {fileID: 114216698831381096}
   m_Layer: 0
   m_Name: Tile
   m_TagString: Untagged
@@ -317,6 +319,20 @@ MonoBehaviour:
   Tile: {fileID: 23927524601227228}
   Selectable: {fileID: 114071085125174492}
   Shape: {fileID: 114347949941265700}
+  Coord: {x: 0, y: 0}
+--- !u!114 &114216698831381096
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1854403036674650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Unlit/Color
 --- !u!114 &114347949941265700
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -335,6 +351,19 @@ MonoBehaviour:
   CircleTexture: {fileID: 2800000, guid: ec5cb6a3b83454646b8defa97fbdeb84, type: 3}
   StarTexture: {fileID: 2800000, guid: d7164c947208211449a01acd9feaec72, type: 3}
   HeartTexture: {fileID: 2800000, guid: 8a59601ad97ea0342a745860a6a4c153, type: 3}
+--- !u!114 &114588870455368656
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1595253109151028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Understand/ShapeShader
 --- !u!114 &114613828506049076
 MonoBehaviour:
   m_ObjectHideFlags: 1

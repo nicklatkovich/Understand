@@ -8,13 +8,13 @@ public class EndShapeRule : IRule {
 	public EndShapeRule(HashSet<ShapeComponent.Shape> shapes, string description) {
 		this.shapes = shapes;
 		this.description = description;
-		this.fillingOrder = 10;
+		this.priority = 10;
 	}
 
-	public override void FillGrid(ShapeComponent.Shape[][] grid, bool[][] filledCell, List<Vector2Int> path) {
+	public override void FillGrid(ShapeComponent.Shape[][] grid, RuleGeneratorHelper gen, List<Vector2Int> path) {
 		Vector2Int end = path.Last();
 		grid[end.x][end.y] = shapes.PickRandom();
-		filledCell[end.x][end.y] = true;
+		gen.filledCell[end.x][end.y] = true;
 	}
 
 	public override bool Valid(ShapeComponent.Shape[][] grid, List<Vector2Int> path) {

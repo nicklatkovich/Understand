@@ -16,9 +16,20 @@ public class ShapeComponent : MonoBehaviour {
 		Shape.STAR,
 		Shape.HEART,
 	});
+	public static readonly ReadOnlyCollection<Shape> FOUR_VERTICES_SHAPES = System.Array.AsReadOnly(new[] { Shape.SQUARE, Shape.DIAMOND });
+	public static readonly ReadOnlyCollection<Shape> TRIANGLE_SHAPES = System.Array.AsReadOnly(new[] {
+		Shape.TRIANGLE_UP,
+		Shape.TRIANGLE_RIGHT,
+		Shape.TRIANGLE_DOWN,
+		Shape.TRIANGLE_LEFT,
+	});
 
 	public static bool IsTriangle(ShapeComponent.Shape shape) {
-		return shape == Shape.TRIANGLE_UP || shape == Shape.TRIANGLE_RIGHT || shape == Shape.TRIANGLE_DOWN || shape == Shape.TRIANGLE_LEFT;
+		return TRIANGLE_SHAPES.Contains(shape);
+	}
+
+	public static bool HasFourVertices(ShapeComponent.Shape shape) {
+		return FOUR_VERTICES_SHAPES.Contains(shape);
 	}
 
 	private static Dictionary<Shape, float> Rotations = new Dictionary<Shape, float> {

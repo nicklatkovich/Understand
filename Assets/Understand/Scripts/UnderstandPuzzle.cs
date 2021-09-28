@@ -13,33 +13,84 @@ public class UnderstandPuzzle {
 	public List<Vector2Int>[] pathes = new List<Vector2Int>[LEVELS_COUNT];
 
 	public UnderstandPuzzle() {
-		List<IRule> rules = new List<IRule>();
-		rules.Add(GetRandomStartShapeRule());
-		rules.Add(GetRandomEndShapeRule());
-		int minLength = 2;
+		List<IRule> rules = GenerateRules();
+		int minLength = 3;
 		for (int levelIndex = 0; levelIndex < LEVELS_COUNT; levelIndex++) {
-			HashSet<ShapeComponent.Shape> offPathShapes = new HashSet<ShapeComponent.Shape>(ShapeComponent.ALL_SHAPES);
-			HashSet<ShapeComponent.Shape> onPathShapes = new HashSet<ShapeComponent.Shape>(ShapeComponent.ALL_SHAPES);
+			RuleGeneratorHelper gen = new RuleGeneratorHelper(SIZE);
 			maps[levelIndex] = new ShapeComponent.Shape[SIZE][];
 			pathes[levelIndex] = GenerateRandomPath(minLength);
-			bool[][] filledCell = new bool[SIZE][];
 			for (int x = 0; x < SIZE; x++) {
 				maps[levelIndex][x] = new ShapeComponent.Shape[SIZE];
-				filledCell[x] = new bool[SIZE];
+				gen.filledCell[x] = new bool[SIZE];
 			}
-			rules.Sort((a, b) => a.fillingOrder - b.fillingOrder);
-			foreach (IRule rule in rules) rule.FillGrid(maps[levelIndex], filledCell, pathes[levelIndex]);
+			rules.Sort((a, b) => b.priority - a.priority);
+			foreach (IRule rule in rules) rule.FillGrid(maps[levelIndex], gen, pathes[levelIndex]);
+			ShapeComponent.Shape filler = gen.OnPathShapes.Contains(ShapeComponent.Shape.NONE) && Random.Range(0, 9) != 0
+				? ShapeComponent.Shape.NONE
+				: gen.OnPathShapes.PickRandom();
 			for (int x = 0; x < SIZE; x++) {
 				for (int y = 0; y < SIZE; y++) {
-					if (filledCell[x][y]) continue;
-					filledCell[x][y] = true;
-					if (Random.Range(0f, 1f) >= DIFFICULTIES[levelIndex]) continue;
-					maps[levelIndex][x][y] = ChooseFillingShape(pathes[levelIndex].Contains(new Vector2Int(x, y)) ? onPathShapes : offPathShapes);
+					if (gen.filledCell[x][y]) continue;
+					gen.filledCell[x][y] = true;
+					if (Random.Range(0f, 1f) >= DIFFICULTIES[levelIndex]) maps[levelIndex][x][y] = filler;
+					else maps[levelIndex][x][y] = ChooseFillingShape(pathes[levelIndex].Contains(new Vector2Int(x, y)) ? gen.OnPathShapes : gen.OffPathShapes);
 				}
 			}
 		}
 		this.rules = rules.ToArray();
 		this.rules.Shuffle();
+	}
+
+	private List<IRule> GenerateRules() {
+		List<IRule> result = new List<IRule>();
+		StartShapeRule startShapeRule = GetRandomStartShapeRule();
+		result.Add(startShapeRule);
+		EndShapeRule endShapeRule = GetRandomEndShapeRule();
+		result.Add(endShapeRule);
+		result.Add(GenerateVisitingRule(startShapeRule, endShapeRule));
+		return result;
+	}
+
+	public IRule GenerateVisitingRule(StartShapeRule startShapeRule, EndShapeRule endShapeRule) {
+		IRule.CollectionState state = IRule.ALL_COLLECTION_STATES.PickRandom();
+		HashSet<int> ignoreSets = new HashSet<int>();
+		HashSet<ShapeComponent.Shape> ignoreShapes = new HashSet<ShapeComponent.Shape>();
+		string count;
+		if (state == IRule.CollectionState.ANY) {
+			count = "any number of";
+			bool ignoreStartRuleShapes = false;
+			bool ignoreEndRuleShapes = false;
+			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) {
+				ignoreStartRuleShapes = true;
+				ignoreSets.Add(0);
+			}
+			if (endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) {
+				ignoreEndRuleShapes = true;
+				ignoreSets.Add(0);
+			}
+			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) {
+				ignoreStartRuleShapes = true;
+				ignoreSets.Add(8);
+			}
+			if (endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) {
+				ignoreEndRuleShapes = true;
+				ignoreSets.Add(8);
+			}
+			if (!ignoreStartRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(startShapeRule.shapes));
+			if (!ignoreEndRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(endShapeRule.shapes));
+		} else if (state == IRule.CollectionState.ONE) {
+			count = "one";
+			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s)) && endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s)) && endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+			foreach (ShapeComponent.Shape shape in ShapeComponent.ALL_SHAPES) {
+				if (startShapeRule.shapes.Contains(shape) && endShapeRule.shapes.Contains(shape)) ignoreShapes.Add(shape);
+			}
+		} else if (state == IRule.CollectionState.ALL) count = "all";
+		else throw new System.Exception("Unknown rule collection state");
+		ShapeRule sr = GenerateRandomShapeRule(ignoreSets, ignoreShapes);
+		string str = sr.shapes.Count == 0 && sr.shapes.Contains(ShapeComponent.Shape.NONE) ? "Visit {0} " + sr.description : "Collect {0} " + sr.description;
+		if (state != IRule.CollectionState.ONE) str += "s";
+		return new VisitShapeRule(sr.shapes, state, string.Format(str, count));
 	}
 
 	public bool RuleValid(int levelIndex, int ruleIndex, List<Vector2Int> path) {
@@ -55,8 +106,19 @@ public class UnderstandPuzzle {
 		}
 	}
 
-	private ShapeRule GenerateRandomShapeRule() {
-		int rnd = Random.Range(0, 9);
+	private ShapeRule GenerateRandomShapeRule(HashSet<int> ignoreSets = null, HashSet<ShapeComponent.Shape> ignoreShapes = null) {
+		if (ignoreSets == null) ignoreSets = new HashSet<int>();
+		if (ignoreShapes == null) ignoreShapes = new HashSet<ShapeComponent.Shape>();
+		if (ignoreShapes.Contains(ShapeComponent.Shape.SQUARE)) ignoreSets.Add(1);
+		if (ignoreShapes.Contains(ShapeComponent.Shape.DIAMOND)) ignoreSets.Add(2);
+		if (ignoreShapes.Contains(ShapeComponent.Shape.CIRCLE)) ignoreSets.Add(3);
+		if (ignoreShapes.Contains(ShapeComponent.Shape.STAR)) ignoreSets.Add(4);
+		if (ignoreShapes.Contains(ShapeComponent.Shape.HEART)) ignoreSets.Add(5);
+		if (ignoreShapes.Contains(ShapeComponent.Shape.NONE)) ignoreSets.Add(6);
+		if (ShapeComponent.FOUR_VERTICES_SHAPES.All(s => ignoreShapes.Contains(s))) ignoreSets.Add(8);
+		if (ShapeComponent.TRIANGLE_SHAPES.All(s => ignoreShapes.Contains(s))) ignoreSets.Add(7);
+		if (ignoreSets.Count == 9) throw new System.Exception("Can not generate random shape rule");
+		int rnd = Enumerable.Range(0, 9).Where(i => !ignoreSets.Contains(i)).PickRandom();
 		switch (rnd) {
 			case 0:
 				return new ShapeRule(new[] {
@@ -72,24 +134,24 @@ public class UnderstandPuzzle {
 			case 5: return new ShapeRule(new[] { ShapeComponent.Shape.HEART }, "heart");
 			case 6: return new ShapeRule(new[] { ShapeComponent.Shape.NONE }, "empty cell");
 			case 7: {
-					int rnd1 = Random.Range(0, 4);
-					switch (rnd1) {
-						case 0: return new ShapeRule(new[] { ShapeComponent.Shape.TRIANGLE_UP }, "up-triangle");
-						case 1: return new ShapeRule(new[] { ShapeComponent.Shape.TRIANGLE_RIGHT }, "right-triangle");
-						case 2: return new ShapeRule(new[] { ShapeComponent.Shape.TRIANGLE_DOWN }, "down-triangle");
-						default: return new ShapeRule(new[] { ShapeComponent.Shape.TRIANGLE_LEFT }, "left-triangle");
-					}
+					ShapeComponent.Shape resShape = ShapeComponent.TRIANGLE_SHAPES.Where(t => !ignoreShapes.Contains(t)).PickRandom();
+					return new ShapeRule(new[] { resShape }, new Dictionary<ShapeComponent.Shape, string> {
+						{ ShapeComponent.Shape.TRIANGLE_UP , "up-triangle" },
+						{ ShapeComponent.Shape.TRIANGLE_RIGHT , "right-triangle" },
+						{ ShapeComponent.Shape.TRIANGLE_DOWN , "down-triangle" },
+						{ ShapeComponent.Shape.TRIANGLE_LEFT , "left-triangle" },
+					}[resShape]);
 				}
-			default: return new ShapeRule(new[] { ShapeComponent.Shape.SQUARE, ShapeComponent.Shape.DIAMOND }, "shape with 4 vertices");
+			default: return new ShapeRule(new[] { ShapeComponent.Shape.SQUARE, ShapeComponent.Shape.DIAMOND }, "4-vertices shape");
 		}
 	}
 
-	public IRule GetRandomStartShapeRule() {
+	public StartShapeRule GetRandomStartShapeRule() {
 		ShapeRule rawRule = GenerateRandomShapeRule();
 		return new StartShapeRule(rawRule.shapes, "Start on " + rawRule.description);
 	}
 
-	public IRule GetRandomEndShapeRule() {
+	public EndShapeRule GetRandomEndShapeRule() {
 		ShapeRule rawRule = GenerateRandomShapeRule();
 		return new EndShapeRule(rawRule.shapes, "End on " + rawRule.description);
 	}
