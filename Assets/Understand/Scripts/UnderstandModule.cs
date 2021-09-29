@@ -98,7 +98,7 @@ public class UnderstandModule : ModuleScript {
 			ruleIndicator.transform.parent = transform;
 			ruleIndicator.transform.localScale = Vector3.one;
 			ruleIndicator.transform.localRotation = Quaternion.identity;
-			ruleIndicator.transform.localPosition = RULE_INDICATORS_CENTER + new Vector3(0, 0, firstRuleIndicatorPos + i * RULE_INDICATORS_OFFSET);
+			ruleIndicator.transform.localPosition = RULE_INDICATORS_CENTER - new Vector3(0, 0, firstRuleIndicatorPos + i * RULE_INDICATORS_OFFSET);
 			ruleIndicator.state = RuleIndicatorComponent.State.PASS;
 			ruleIndicators[i] = ruleIndicator;
 		}
