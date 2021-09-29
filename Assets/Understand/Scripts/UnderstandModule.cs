@@ -133,6 +133,13 @@ public class UnderstandModule : ModuleScript {
 	}
 
 	private void RenderStage() {
+		if (currentStageIndex + 1 == UnderstandPuzzle.LEVELS_COUNT) {
+			foreach (RuleIndicatorComponent ruleInd in ruleIndicators) ruleInd.state = RuleIndicatorComponent.State.OFF;
+		} else UpdateRulesValidities();
+		if (currentStageIndex == 0 && ruleIndicators.Any(ind => ind.state != RuleIndicatorComponent.State.PASS)) {
+			Path = Puzzle.pathes[0];
+			UpdateRulesValidities();
+		}
 		for (int x = 0; x < UnderstandPuzzle.SIZE; x++) {
 			for (int y = 0; y < UnderstandPuzzle.SIZE; y++) {
 				CellComponent cell = Cells[x][y];
@@ -140,7 +147,6 @@ public class UnderstandModule : ModuleScript {
 				UpdateCellColor(cell);
 			}
 		}
-		UpdateRulesValidities();
 		UpdatePath();
 	}
 
