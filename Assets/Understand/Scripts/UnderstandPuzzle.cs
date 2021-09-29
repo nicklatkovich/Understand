@@ -47,17 +47,30 @@ public class UnderstandPuzzle {
 		result.Add(startShapeRule);
 		EndShapeRule endShapeRule = GetRandomEndShapeRule();
 		result.Add(endShapeRule);
-		result.Add(GenerateVisitingRule(startShapeRule, endShapeRule));
+		VisitShapeRule visitShapeRule = GenerateVisitingRule(startShapeRule, endShapeRule);
+		result.Add(visitShapeRule);
+		result.Add(GenerateAvoidingRule(startShapeRule, endShapeRule, visitShapeRule));
 		return result;
 	}
 
-	public IRule GenerateVisitingRule(StartShapeRule startShapeRule, EndShapeRule endShapeRule) {
+	public IRule GenerateAvoidingRule(StartShapeRule startShapeRule, EndShapeRule endShapeRule, VisitShapeRule visitShapeRule) {
+		HashSet<int> ignoreSets = new HashSet<int>();
+		HashSet<ShapeComponent.Shape>[] visitingShapes = new[] { startShapeRule.shapes, endShapeRule.shapes, visitShapeRule.shapes };
+		HashSet<ShapeComponent.Shape> allVisitingShapes = new HashSet<ShapeComponent.Shape>(visitingShapes.SelectMany(s => s));
+		if (allVisitingShapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+		if (allVisitingShapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+		ShapeRule sr = GenerateRandomShapeRule(ignoreSets, allVisitingShapes);
+		return new AvoidShapeRule(sr.shapes, "Avoid " + sr.description + "s");
+	}
+
+	// TODO: refactor this method
+	public VisitShapeRule GenerateVisitingRule(StartShapeRule startShapeRule, EndShapeRule endShapeRule) {
 		IRule.CollectionState state = IRule.ALL_COLLECTION_STATES.PickRandom();
 		HashSet<int> ignoreSets = new HashSet<int>();
 		HashSet<ShapeComponent.Shape> ignoreShapes = new HashSet<ShapeComponent.Shape>();
 		string count;
 		if (state == IRule.CollectionState.ANY) {
-			count = "any number of";
+			count = "at least one";
 			bool ignoreStartRuleShapes = false;
 			bool ignoreEndRuleShapes = false;
 			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) {
@@ -79,7 +92,7 @@ public class UnderstandPuzzle {
 			if (!ignoreStartRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(startShapeRule.shapes));
 			if (!ignoreEndRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(endShapeRule.shapes));
 		} else if (state == IRule.CollectionState.ONE) {
-			count = "one";
+			count = "exactly one";
 			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s)) && endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
 			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s)) && endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
 			foreach (ShapeComponent.Shape shape in ShapeComponent.ALL_SHAPES) {
@@ -88,8 +101,8 @@ public class UnderstandPuzzle {
 		} else if (state == IRule.CollectionState.ALL) count = "all";
 		else throw new System.Exception("Unknown rule collection state");
 		ShapeRule sr = GenerateRandomShapeRule(ignoreSets, ignoreShapes);
-		string str = sr.shapes.Count == 0 && sr.shapes.Contains(ShapeComponent.Shape.NONE) ? "Visit {0} " + sr.description : "Collect {0} " + sr.description;
-		if (state != IRule.CollectionState.ONE) str += "s";
+		string str = sr.shapes.Count == 1 && sr.shapes.Contains(ShapeComponent.Shape.NONE) ? "Visit {0} " + sr.description : "Collect {0} " + sr.description;
+		if (state == IRule.CollectionState.ALL) str += "s";
 		return new VisitShapeRule(sr.shapes, state, string.Format(str, count));
 	}
 
