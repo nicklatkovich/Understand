@@ -19,12 +19,21 @@ public class VisitShapeRule : IRule {
 			gen.filledCell[cell.x][cell.y] = true;
 		}
 		switch (state) {
-			case CollectionState.ANY: return;
+			case CollectionState.ANY:
+				foreach (ShapeComponent.Shape s in shapes) gen.OffPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.LOW);
+				break;
 			case CollectionState.ONE:
-				gen.OnPathShapes.RemoveWhere(s => shapes.Contains(s));
+				foreach (ShapeComponent.Shape s in shapes) {
+					gen.OffPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.HIGH);
+					gen.OnPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.NEVER);
+				}
 				break;
 			case CollectionState.ALL:
-				gen.OffPathShapes.RemoveWhere(s => shapes.Contains(s));
+				foreach (ShapeComponent.Shape s in shapes) {
+					gen.OffPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.NEVER);
+					gen.OnPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.HIGH);
+					gen.NotFillers.Add(s);
+				}
 				break;
 		}
 	}

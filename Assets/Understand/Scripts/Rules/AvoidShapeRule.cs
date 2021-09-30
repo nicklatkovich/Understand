@@ -11,7 +11,10 @@ public class AvoidShapeRule : IRule {
 	}
 
 	public override void FillGrid(ShapeComponent.Shape[][] grid, RuleGeneratorHelper gen, List<Vector2Int> path) {
-		gen.OnPathShapes.RemoveWhere(s => shapes.Contains(s));
+		foreach (ShapeComponent.Shape s in shapes) {
+			gen.OnPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.NEVER);
+			gen.OffPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.HIGH);
+		}
 	}
 
 	public override bool Valid(ShapeComponent.Shape[][] grid, List<Vector2Int> path) {

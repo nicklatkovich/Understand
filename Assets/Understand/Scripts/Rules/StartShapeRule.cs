@@ -15,6 +15,10 @@ public class StartShapeRule : IRule {
 		Vector2Int start = path.First();
 		grid[start.x][start.y] = shapes.PickRandom();
 		gen.filledCell[start.x][start.y] = true;
+		foreach (ShapeComponent.Shape s in shapes) {
+			gen.OnPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.LOW);
+			gen.OffPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.LOW);
+		}
 	}
 
 	public override bool Valid(ShapeComponent.Shape[][] grid, List<Vector2Int> path) {

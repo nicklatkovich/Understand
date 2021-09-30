@@ -1,11 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 
 public class RuleGeneratorHelper {
-	public HashSet<ShapeComponent.Shape> OffPathShapes = new HashSet<ShapeComponent.Shape>(ShapeComponent.ALL_SHAPES);
-	public HashSet<ShapeComponent.Shape> OnPathShapes = new HashSet<ShapeComponent.Shape>(ShapeComponent.ALL_SHAPES);
+	public ShapePriorityManager OnPathShapes = new ShapePriorityManager();
+	public ShapePriorityManager OffPathShapes = new ShapePriorityManager();
 	public bool[][] filledCell;
+	public HashSet<ShapeComponent.Shape> NotFillers = new HashSet<ShapeComponent.Shape>();
 
 	public RuleGeneratorHelper(int size) {
 		filledCell = new bool[size][];

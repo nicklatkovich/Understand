@@ -15,6 +15,10 @@ public class EndShapeRule : IRule {
 		Vector2Int end = path.Last();
 		grid[end.x][end.y] = shapes.PickRandom();
 		gen.filledCell[end.x][end.y] = true;
+		foreach (ShapeComponent.Shape s in shapes) {
+			gen.OnPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.LOW);
+			gen.OffPathShapes.SetPriorityOf(s, ShapePriorityManager.Priority.LOW);
+		}
 	}
 
 	public override bool Valid(ShapeComponent.Shape[][] grid, List<Vector2Int> path) {

@@ -25,15 +25,18 @@ public class UnderstandPuzzle {
 			}
 			rules.Sort((a, b) => b.priority - a.priority);
 			foreach (IRule rule in rules) rule.FillGrid(maps[levelIndex], gen, pathes[levelIndex]);
-			ShapeComponent.Shape filler = gen.OnPathShapes.Contains(ShapeComponent.Shape.NONE) && Random.Range(0, 9) != 0
+			HashSet<ShapeComponent.Shape> possibleFillers = new HashSet<ShapeComponent.Shape>(ShapeComponent.ALL_SHAPES.Where(s => (
+				gen.OnPathShapes.GetPriorityOf(s) != ShapePriorityManager.Priority.NEVER && gen.OffPathShapes.GetPriorityOf(s) != ShapePriorityManager.Priority.NEVER
+			)));
+			ShapeComponent.Shape filler = possibleFillers.Contains(ShapeComponent.Shape.NONE) && Random.Range(0, 9) != 0
 				? ShapeComponent.Shape.NONE
-				: gen.OnPathShapes.PickRandom();
+				: ShapePriorityManager.PickRandomFromSetWithoutPriority(possibleFillers);
 			for (int x = 0; x < SIZE; x++) {
 				for (int y = 0; y < SIZE; y++) {
 					if (gen.filledCell[x][y]) continue;
 					gen.filledCell[x][y] = true;
 					if (Random.Range(0f, 1f) >= DIFFICULTIES[levelIndex]) maps[levelIndex][x][y] = filler;
-					else maps[levelIndex][x][y] = ChooseFillingShape(pathes[levelIndex].Contains(new Vector2Int(x, y)) ? gen.OnPathShapes : gen.OffPathShapes);
+					else maps[levelIndex][x][y] = pathes[levelIndex].Contains(new Vector2Int(x, y)) ? gen.OnPathShapes.PickRandomShape() : gen.OffPathShapes.PickRandomShape();
 				}
 			}
 		}
@@ -87,22 +90,14 @@ public class UnderstandPuzzle {
 			count = "at least one";
 			bool ignoreStartRuleShapes = false;
 			bool ignoreEndRuleShapes = false;
-			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) {
-				ignoreStartRuleShapes = true;
-				ignoreSets.Add(0);
-			}
-			if (endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) {
-				ignoreEndRuleShapes = true;
-				ignoreSets.Add(0);
-			}
-			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) {
-				ignoreStartRuleShapes = true;
-				ignoreSets.Add(8);
-			}
-			if (endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) {
-				ignoreEndRuleShapes = true;
-				ignoreSets.Add(8);
-			}
+			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+			if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.IsTriangle(s))) ignoreStartRuleShapes = true;
+			if (endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+			if (endShapeRule.shapes.Count > 1 && endShapeRule.shapes.All(s => ShapeComponent.IsTriangle(s))) ignoreEndRuleShapes = true;
+			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+			if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.HasFourVertices(s))) ignoreStartRuleShapes = true;
+			if (endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+			if (endShapeRule.shapes.Count > 1 && endShapeRule.shapes.All(s => ShapeComponent.HasFourVertices(s))) ignoreEndRuleShapes = true;
 			if (!ignoreStartRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(startShapeRule.shapes));
 			if (!ignoreEndRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(endShapeRule.shapes));
 		} else if (state == IRule.CollectionState.ONE) {
@@ -193,12 +188,5 @@ public class UnderstandPuzzle {
 
 	private static bool IsValidCoord(Vector2Int a) {
 		return a.x >= 0 && a.x < SIZE && a.y >= 0 && a.y < SIZE;
-	}
-
-	private ShapeComponent.Shape ChooseFillingShape(HashSet<ShapeComponent.Shape> variants) {
-		ShapeComponent.Shape[] notTriangles = variants.Where(s => !ShapeComponent.IsTriangle(s)).ToArray();
-		if (notTriangles.Length == variants.Count) return variants.PickRandom();
-		if (Random.Range(0, notTriangles.Count() + 1) == 0) return variants.Where(s => ShapeComponent.IsTriangle(s)).PickRandom();
-		return notTriangles.PickRandom();
 	}
 }
