@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 
 public class Maze {
-	public static readonly Vector2Int[] DD = new[] { new Vector2Int(1, 0), new Vector2Int(0, -1), new Vector2Int(-1, 0), new Vector2Int(0, 1) };
+	public static readonly Vector2Int[] DD = new[] { new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(-1, 0), new Vector2Int(0, -1) };
 
 	private class GenerationCell {
 		public bool processed;
@@ -37,11 +37,13 @@ public class Maze {
 	}
 
 	public List<Vector2Int> GenerateRandomPath(int minLength) {
-		List<Vector2Int> result = GenerateRandomPath(new Vector2Int(Random.Range(0, Size), Random.Range(0, Size)));
+		return GenerateRandomPath(minLength, new Vector2Int(Random.Range(0, Size), Random.Range(0, Size)));
+	}
+
+	public List<Vector2Int> GenerateRandomPath(int minLength, Vector2Int visit) {
+		List<Vector2Int> result = GenerateRandomPath(visit);
 		if (result.Count >= minLength) return result;
-		result = GenerateRandomPath(result.Last());
-		if (result.Count < minLength) throw new System.Exception("Unable to create random path with required length");
-		return result;
+		throw new System.Exception("Unable to create random path with required length");
 	}
 
 	private List<Vector2Int> GenerateRandomPath(Vector2Int from) {

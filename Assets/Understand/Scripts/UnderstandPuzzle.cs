@@ -14,12 +14,13 @@ public class UnderstandPuzzle {
 
 	public UnderstandPuzzle() {
 		List<IRule> rules = GenerateRules();
-		int minLength = 4;
+		StartCoordRule startCoordRule = rules.FirstOrDefault(r => r is StartCoordRule) as StartCoordRule;
+		int minLength = 4; // NOTE: min length > 7 not implemented yet!!!
 		ShapeComponent.Shape prevFiller = ShapeComponent.Shape.NONE;
 		for (int levelIndex = 0; levelIndex < LEVELS_COUNT; levelIndex++) {
 			RuleGeneratorHelper gen = new RuleGeneratorHelper(SIZE);
 			maps[levelIndex] = new ShapeComponent.Shape[SIZE][];
-			pathes[levelIndex] = GenerateRandomPath(minLength);
+			pathes[levelIndex] = startCoordRule == null ? GenerateRandomPath(minLength) : GenerateRandomPath(minLength, startCoordRule.Coord);
 			for (int x = 0; x < SIZE; x++) {
 				maps[levelIndex][x] = new ShapeComponent.Shape[SIZE];
 				gen.filledCell[x] = new bool[SIZE];
@@ -49,8 +50,12 @@ public class UnderstandPuzzle {
 
 	private List<IRule> GenerateRules() {
 		List<IRule> result = new List<IRule>();
-		StartShapeRule startShapeRule = GetRandomStartShapeRule();
-		result.Add(startShapeRule);
+		StartShapeRule startShapeRule = null;
+		if (Random.Range(0, 10) == 0) result.Add(new StartCoordRule(SIZE));
+		else {
+			startShapeRule = GetRandomStartShapeRule();
+			result.Add(startShapeRule);
+		}
 		EndShapeRule endShapeRule = GetRandomEndShapeRule();
 		result.Add(endShapeRule);
 		List<VisitShapeRule> visitShapeRules = new List<VisitShapeRule>();
@@ -72,9 +77,11 @@ public class UnderstandPuzzle {
 		AvoidShapeRule avoidShapeRule = null
 	) {
 		HashSet<int> ignoreSets = new HashSet<int>();
-		HashSet<ShapeComponent.Shape>[] visitingShapes = new[] { startShapeRule.shapes, endShapeRule.shapes }.Concat(visitShapeRules.Select(r => r.shapes)).ToArray();
-		HashSet<ShapeComponent.Shape> allVisitingShapes = new HashSet<ShapeComponent.Shape>(visitingShapes.SelectMany(s => s));
-		if (avoidShapeRule != null) allVisitingShapes = new HashSet<ShapeComponent.Shape>(allVisitingShapes.Concat(avoidShapeRule.shapes));
+		HashSet<ShapeComponent.Shape> allVisitingShapes = new HashSet<ShapeComponent.Shape>();
+		foreach (ShapeComponent.Shape s in endShapeRule.shapes) allVisitingShapes.Add(s);
+		foreach (ShapeComponent.Shape s in new HashSet<ShapeComponent.Shape>(visitShapeRules.SelectMany(r => r.shapes))) allVisitingShapes.Add(s);
+		if (startShapeRule != null) foreach (ShapeComponent.Shape s in startShapeRule.shapes) allVisitingShapes.Add(s);
+		if (avoidShapeRule != null) foreach (ShapeComponent.Shape s in avoidShapeRule.shapes) allVisitingShapes.Add(s);
 		if (allVisitingShapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
 		if (allVisitingShapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
 		ShapeRule sr = GenerateRandomShapeRule(ignoreSets, allVisitingShapes);
@@ -92,22 +99,26 @@ public class UnderstandPuzzle {
 			count = "at least one";
 			bool ignoreStartRuleShapes = false;
 			bool ignoreEndRuleShapes = false;
-			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
-			if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.IsTriangle(s))) ignoreStartRuleShapes = true;
+			if (startShapeRule != null) {
+				if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+				if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.IsTriangle(s))) ignoreStartRuleShapes = true;
+				if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+				if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.HasFourVertices(s))) ignoreStartRuleShapes = true;
+			}
 			if (endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
 			if (endShapeRule.shapes.Count > 1 && endShapeRule.shapes.All(s => ShapeComponent.IsTriangle(s))) ignoreEndRuleShapes = true;
-			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
-			if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.HasFourVertices(s))) ignoreStartRuleShapes = true;
 			if (endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
 			if (endShapeRule.shapes.Count > 1 && endShapeRule.shapes.All(s => ShapeComponent.HasFourVertices(s))) ignoreEndRuleShapes = true;
-			if (!ignoreStartRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(startShapeRule.shapes));
+			if (startShapeRule != null && !ignoreStartRuleShapes) foreach (ShapeComponent.Shape s in startShapeRule.shapes) ignoreShapes.Add(s);
 			if (!ignoreEndRuleShapes) ignoreShapes = new HashSet<ShapeComponent.Shape>(ignoreShapes.Concat(endShapeRule.shapes));
 		} else if (state == IRule.CollectionState.ONE) {
 			count = "exactly one";
-			if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s)) && endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
-			if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s)) && endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
-			foreach (ShapeComponent.Shape shape in ShapeComponent.ALL_SHAPES) {
-				if (startShapeRule.shapes.Contains(shape) && endShapeRule.shapes.Contains(shape)) ignoreShapes.Add(shape);
+			if (startShapeRule != null) {
+				if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s)) && endShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+				if (startShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s)) && endShapeRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+				foreach (ShapeComponent.Shape shape in ShapeComponent.ALL_SHAPES) {
+					if (startShapeRule.shapes.Contains(shape) && endShapeRule.shapes.Contains(shape)) ignoreShapes.Add(shape);
+				}
 			}
 		} else if (state == IRule.CollectionState.ALL) count = "all";
 		else throw new System.Exception("Unknown rule collection state");
@@ -188,6 +199,15 @@ public class UnderstandPuzzle {
 		int length = Random.Range(minLength, result.Count + 1);
 		int skip = Random.Range(0, result.Count - length + 1);
 		return result.Skip(skip).Take(length).ToList();
+	}
+
+	public List<Vector2Int> GenerateRandomPath(int minLength, Vector2Int visit) {
+		Maze maze = new Maze(SIZE);
+		List<Vector2Int> generatedPath = maze.GenerateRandomPath(minLength, visit);
+		int length = Random.Range(minLength, generatedPath.Count + 1);
+		int skip = Random.Range(0, generatedPath.Count - length + 1);
+		List<Vector2Int> result = generatedPath.Skip(skip).Take(length).ToList();
+		return result.Contains(visit) ? result : generatedPath;
 	}
 
 	private static bool IsValidCoord(Vector2Int a) {

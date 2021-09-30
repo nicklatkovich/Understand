@@ -69,7 +69,7 @@ public class UnderstandModule : ModuleScript {
 				CellComponent cell = Instantiate(CellPrefab);
 				Cells[x][y] = cell;
 				cell.transform.parent = GridContainer;
-				cell.transform.localPosition = new Vector3((x + .5f) * CELL_SIZE, .001f, (y + .5f) * CELL_SIZE);
+				cell.transform.localPosition = new Vector3((x + .5f) * CELL_SIZE, .001f, (UnderstandPuzzle.SIZE - y - .5f) * CELL_SIZE);
 				cell.transform.localScale = Vector3.one;
 				cell.transform.localRotation = Quaternion.identity;
 				cell.Coord = new Vector2Int(x, y);
@@ -245,7 +245,7 @@ public class UnderstandModule : ModuleScript {
 				path.transform.parent = GridContainer;
 				path.transform.localScale = Vector3.one;
 			}
-			path.transform.localPosition = new Vector3((coord.x + .5f) * CELL_SIZE, .0014f, (coord.y + .5f) * CELL_SIZE);
+			path.transform.localPosition = new Vector3((coord.x + .5f) * CELL_SIZE, .0014f, (UnderstandPuzzle.SIZE - coord.y - .5f) * CELL_SIZE);
 			path.transform.localRotation = Quaternion.Euler(0, 90f * dir, 0);
 			ActivePath.Add(path);
 			prevCoord = coord;
