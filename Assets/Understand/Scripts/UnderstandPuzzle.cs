@@ -15,6 +15,7 @@ public class UnderstandPuzzle {
 	public UnderstandPuzzle() {
 		List<IRule> rules = GenerateRules();
 		int minLength = 4;
+		ShapeComponent.Shape prevFiller = ShapeComponent.Shape.NONE;
 		for (int levelIndex = 0; levelIndex < LEVELS_COUNT; levelIndex++) {
 			RuleGeneratorHelper gen = new RuleGeneratorHelper(SIZE);
 			maps[levelIndex] = new ShapeComponent.Shape[SIZE][];
@@ -28,9 +29,11 @@ public class UnderstandPuzzle {
 			HashSet<ShapeComponent.Shape> possibleFillers = new HashSet<ShapeComponent.Shape>(ShapeComponent.ALL_SHAPES.Where(s => (
 				gen.OnPathShapes.GetPriorityOf(s) != ShapePriorityManager.Priority.NEVER && gen.OffPathShapes.GetPriorityOf(s) != ShapePriorityManager.Priority.NEVER
 			)));
-			ShapeComponent.Shape filler = possibleFillers.Contains(ShapeComponent.Shape.NONE) && Random.Range(0, 9) != 0
-				? ShapeComponent.Shape.NONE
-				: ShapePriorityManager.PickRandomFromSetWithoutPriority(possibleFillers);
+			ShapeComponent.Shape filler;
+			if (prevFiller != ShapeComponent.Shape.NONE && Random.Range(0, 4) != 0) filler = ShapePriorityManager.PickRandomFromSetWithoutPriority(possibleFillers);
+			else if (possibleFillers.Contains(ShapeComponent.Shape.NONE) && Random.Range(0, 10) != 0) filler = ShapeComponent.Shape.NONE;
+			else filler = ShapePriorityManager.PickRandomFromSetWithoutPriority(possibleFillers);
+			prevFiller = filler;
 			for (int x = 0; x < SIZE; x++) {
 				for (int y = 0; y < SIZE; y++) {
 					if (gen.filledCell[x][y]) continue;
@@ -78,7 +81,6 @@ public class UnderstandPuzzle {
 		return new AvoidShapeRule(sr.shapes, "Avoid " + sr.description + "s");
 	}
 
-	// TODO: refactor this method
 	public VisitShapeRule GenerateVisitingRule(StartShapeRule startShapeRule, EndShapeRule endShapeRule, VisitShapeRule anotherVisitingRule = null) {
 		IRule.CollectionState state = IRule.ALL_COLLECTION_STATES.PickRandom();
 		HashSet<int> ignoreSets = new HashSet<int>();
@@ -140,7 +142,9 @@ public class UnderstandPuzzle {
 		if (ShapeComponent.FOUR_VERTICES_SHAPES.All(s => ignoreShapes.Contains(s))) ignoreSets.Add(8);
 		if (ShapeComponent.TRIANGLE_SHAPES.All(s => ignoreShapes.Contains(s))) ignoreSets.Add(7);
 		if (ignoreSets.Count == 9) throw new System.Exception("Can not generate random shape rule");
-		int rnd = Enumerable.Range(0, 9).Where(i => !ignoreSets.Contains(i)).PickRandom();
+		HashSet<int> notIgnoredSets = new HashSet<int>(Enumerable.Range(0, 9).Where(i => !ignoreSets.Contains(i)));
+		if (notIgnoredSets.Count > 1 && Random.Range(0, 4) != 0) notIgnoredSets.Remove(6);
+		int rnd = notIgnoredSets.PickRandom();
 		switch (rnd) {
 			case 0:
 				return new ShapeRule(new[] {
