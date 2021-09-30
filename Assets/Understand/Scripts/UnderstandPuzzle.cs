@@ -99,6 +99,10 @@ public class UnderstandPuzzle {
 			count = "at least one";
 			bool ignoreStartRuleShapes = false;
 			bool ignoreEndRuleShapes = false;
+			if (anotherVisitingRule != null) {
+				if (anotherVisitingRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
+				if (anotherVisitingRule.shapes.Any(s => ShapeComponent.HasFourVertices(s))) ignoreSets.Add(8);
+			}
 			if (startShapeRule != null) {
 				if (startShapeRule.shapes.Any(s => ShapeComponent.IsTriangle(s))) ignoreSets.Add(0);
 				if (startShapeRule.shapes.Count > 1 && startShapeRule.shapes.All(s => ShapeComponent.IsTriangle(s))) ignoreStartRuleShapes = true;
