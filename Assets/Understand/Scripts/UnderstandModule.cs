@@ -90,6 +90,9 @@ public class UnderstandModule : ModuleScript {
 		base.OnActivate();
 		Puzzle = new UnderstandPuzzle();
 		for (int i = 0; i < Puzzle.rules.Length; i++) Log("Rule #{0}: {1}", i + 1, Puzzle.rules[i].description);
+		for (int i = 0; i < UnderstandPuzzle.LEVELS_COUNT; i++) {
+			Debug.LogFormat("<Understand #{0}> Stage #{1} solution: {2}", Id, i + 1, Puzzle.pathes[i].Select(cell => RuleGeneratorHelper.CoordToString(cell)).Join("-"));
+		}
 		Path = new List<Vector2Int>(Puzzle.pathes[0]);
 		ruleIndicators = new RuleIndicatorComponent[Puzzle.rules.Length];
 		float firstRuleIndicatorPos = -RULE_INDICATORS_OFFSET * (Puzzle.rules.Length - 1) / 2f;

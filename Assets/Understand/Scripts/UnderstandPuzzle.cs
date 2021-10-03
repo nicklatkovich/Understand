@@ -20,7 +20,8 @@ public class UnderstandPuzzle {
 		for (int levelIndex = 0; levelIndex < LEVELS_COUNT; levelIndex++) {
 			RuleGeneratorHelper gen = new RuleGeneratorHelper(SIZE);
 			maps[levelIndex] = new ShapeComponent.Shape[SIZE][];
-			pathes[levelIndex] = startCoordRule == null ? GenerateRandomPath(minLength) : GenerateRandomPath(minLength, startCoordRule.Coord);
+			bool lastLevel = levelIndex + 1 == LEVELS_COUNT;
+			pathes[levelIndex] = startCoordRule == null ? GenerateRandomPath(minLength, !lastLevel) : GenerateRandomPath(minLength, startCoordRule.Coord, !lastLevel);
 			for (int x = 0; x < SIZE; x++) {
 				maps[levelIndex][x] = new ShapeComponent.Shape[SIZE];
 				gen.filledCell[x] = new bool[SIZE];
@@ -197,20 +198,26 @@ public class UnderstandPuzzle {
 		return new EndShapeRule(rawRule.shapes, "End on " + rawRule.description);
 	}
 
-	public List<Vector2Int> GenerateRandomPath(int minLength) {
+	public List<Vector2Int> GenerateRandomPath(int minLength, bool cut = true) {
 		Maze maze = new Maze(SIZE);
 		List<Vector2Int> result = maze.GenerateRandomPath(minLength);
-		int length = Random.Range(minLength, result.Count + 1);
-		int skip = Random.Range(0, result.Count - length + 1);
-		return result.Skip(skip).Take(length).ToList();
+		if (cut) {
+			int length = Random.Range(minLength, result.Count + 1);
+			int skip = Random.Range(0, result.Count - length + 1);
+			result = result.Skip(skip).Take(length).ToList();
+		}
+		return result;
 	}
 
-	public List<Vector2Int> GenerateRandomPath(int minLength, Vector2Int visit) {
+	public List<Vector2Int> GenerateRandomPath(int minLength, Vector2Int visit, bool cut = true) {
 		Maze maze = new Maze(SIZE);
 		List<Vector2Int> generatedPath = maze.GenerateRandomPath(minLength, visit);
-		int length = Random.Range(minLength, generatedPath.Count + 1);
-		int skip = Random.Range(0, generatedPath.Count - length + 1);
-		List<Vector2Int> result = generatedPath.Skip(skip).Take(length).ToList();
+		List<Vector2Int> result = generatedPath;
+		if (cut) {
+			int length = Random.Range(minLength, generatedPath.Count + 1);
+			int skip = Random.Range(0, generatedPath.Count - length + 1);
+			result = generatedPath.Skip(skip).Take(length).ToList();
+		}
 		return result.Contains(visit) ? result : generatedPath;
 	}
 
