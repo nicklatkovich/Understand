@@ -2,6 +2,8 @@
 using System.Linq;
 using UnityEngine;
 using KeepCoding;
+using System.Text.RegularExpressions;
+using System.Collections;
 
 public class UnderstandModule : ModuleScript {
 	public const float CELL_SIZE = .018f;
@@ -279,4 +281,173 @@ public class UnderstandModule : ModuleScript {
 		result.Selectable.Parent = Selectable;
 		return result;
 	}
+
+	// Twitch Plays
+	#pragma warning disable 414
+	private readonly string TwitchHelpMessage = @"!{0} previous/prev [Goes to the previous stage] | !{0} next [Goes to the next stage] | !{0} c3 uulldr [Starts at cell C3 and draws a path to cell B2 where u=up, d=down, l=left, and r=right] | Cell coordinates use letters as the column and numbers as the row";
+	#pragma warning restore 414
+	IEnumerator ProcessTwitchCommand(string command)
+	{
+		if (Regex.IsMatch(command, @"^\s*previous|prev\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+		{
+			yield return null;
+			if (currentStageIndex == 0)
+			{
+				yield return "sendtochaterror The previous stage does not exist.";
+				yield break;
+			}
+			BackButton.Selectable.OnInteract();
+			yield break;
+		}
+		if (Regex.IsMatch(command, @"^\s*next\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+		{
+			yield return null;
+			if (currentStageIndex == passedStagesCount)
+			{
+				yield return "sendtochaterror The next stage cannot be accessed currently or does not exist.";
+				yield break;
+			}
+			NextButton.Selectable.OnInteract();
+			yield break;
+		}
+		string[] parameters = command.Split(' ');
+		if (parameters.Length != 2)
+        {
+			yield return "sendtochaterror Invalid command format.";
+			yield break;
+        }
+		if (parameters[0].Length < 2)
+		{
+			yield return "sendtochaterror Invalid command format.";
+			yield break;
+		}
+		if (!char.IsLetter(parameters[0], 0))
+		{
+			yield return "sendtochaterror Invalid command format.";
+			yield break;
+		}
+		int number = -1;
+		if (!int.TryParse(parameters[0].Substring(1), out number))
+		{
+			yield return "sendtochaterror Invalid command format.";
+			yield break;
+		}
+		if (number < 0)
+        {
+			yield return "sendtochaterror Invalid command format.";
+			yield break;
+		}
+		parameters[1] = parameters[1].ToUpper();
+		char[] dirs = { 'U', 'D', 'L', 'R' };
+		for (int i = 0; i < parameters[1].Length; i++)
+        {
+			if (!dirs.Contains(parameters[1][i]))
+            {
+				yield return "sendtochaterror Invalid command format.";
+				yield break;
+			}
+        }
+		int letter = char.ToUpper(parameters[0][0]) - 64;
+		if (letter < 1 || letter > UnderstandPuzzle.SIZE || number < 1 || number > UnderstandPuzzle.SIZE)
+        {
+			yield return "sendtochaterror Invalid starting cell.";
+			yield break;
+		}
+		int[] storedCoords = { letter - 1, number - 1 };
+		for (int i = 0; i < parameters[1].Length; i++)
+		{
+            switch (parameters[1].ToUpper()[i])
+            {
+				case 'U':
+					storedCoords[1]--;
+					break;
+				case 'D':
+					storedCoords[1]++;
+					break;
+				case 'L':
+					storedCoords[0]--;
+					break;
+				default:
+					storedCoords[0]++;
+					break;
+			}
+			if (storedCoords[0] < 0 || storedCoords[0] > (UnderstandPuzzle.SIZE - 1) || storedCoords[1] < 0 || storedCoords[1] > (UnderstandPuzzle.SIZE - 1))
+			{
+				yield return "sendtochaterror The specified path directions would go off the grid.";
+				yield break;
+			}
+		}
+		yield return null;
+		storedCoords = new int[]{ letter - 1, number - 1 };
+		Cells[storedCoords[0]][storedCoords[1]].Selectable.OnInteract();
+		yield return new WaitForSeconds(.1f);
+		for (int i = 0; i < parameters[1].Length; i++)
+		{
+			switch (parameters[1].ToUpper()[i])
+			{
+				case 'U':
+					storedCoords[1]--;
+					break;
+				case 'D':
+					storedCoords[1]++;
+					break;
+				case 'L':
+					storedCoords[0]--;
+					break;
+				default:
+					storedCoords[0]++;
+					break;
+			}
+			Cells[storedCoords[0]][storedCoords[1]].Selectable.OnHighlight();
+			yield return new WaitForSeconds(.1f);
+			Cells[storedCoords[0]][storedCoords[1]].Selectable.OnHighlightEnded();
+		}
+		Cells[storedCoords[0]][storedCoords[1]].Selectable.OnInteract();
+	}
+
+	IEnumerator TwitchHandleForcedSolve()
+    {
+		if (DrawingPath)
+        {
+			Vector2Int lastCoord = Path.Last();
+			CellComponent lastCell = Cells[lastCoord.x][lastCoord.y];
+			lastCell.Selectable.OnInteract();
+			yield return new WaitForSeconds(.1f);
+		}
+		while (currentStageIndex != passedStagesCount)
+        {
+			NextButton.Selectable.OnInteract();
+			yield return new WaitForSeconds(.1f);
+		}
+		int start = passedStagesCount;
+		for (int i = start; i < UnderstandPuzzle.LEVELS_COUNT; i++)
+        {
+			List<Vector2Int> sol = Puzzle.pathes[i];
+			for (int j = 0; j < sol.Count; j++)
+            {
+				string coord = RuleGeneratorHelper.CoordToString(sol[j]);
+				if (j == 0)
+                {
+					Cells[char.ToUpper(coord[0]) - 65][int.Parse(coord.Substring(1)) - 1].Selectable.OnInteract();
+					yield return new WaitForSeconds(.1f);
+				}
+                else
+                {
+					Cells[char.ToUpper(coord[0]) - 65][int.Parse(coord.Substring(1)) - 1].Selectable.OnHighlight();
+					yield return new WaitForSeconds(.1f);
+					Cells[char.ToUpper(coord[0]) - 65][int.Parse(coord.Substring(1)) - 1].Selectable.OnHighlightEnded();
+					if (j == (sol.Count - 1))
+                    {
+						Cells[char.ToUpper(coord[0]) - 65][int.Parse(coord.Substring(1)) - 1].Selectable.OnInteract();
+						yield return new WaitForSeconds(.1f);
+					}
+				}
+			}
+			if (i != UnderstandPuzzle.LEVELS_COUNT - 1)
+            {
+				NextButton.Selectable.OnInteract();
+				yield return new WaitForSeconds(.1f);
+			}
+		}
+    }
 }
