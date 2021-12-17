@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using KeepCoding;
 
@@ -21,6 +23,13 @@ public class UnderstandModule : ModuleScript {
 	public static readonly Color32 FINISH_SELECTED_PATH_CELL_COLOR = new Color32(0x55, 0x55, 0x99, 0xff);
 	public static readonly Color32 INACTIVE_SHAPE_COLOR = new Color32(0x33, 0x33, 0x33, 0xff);
 	public static readonly Color32 INACTIVE_SHAPE_OUTLINE_COLOR = new Color32(0xaa, 0xaa, 0xaa, 0xff);
+
+	public readonly string TwitchHelpMessage = new[] {
+		"\"!{0} prev\" - go to the previous stage",
+		"\"!{0} next\" - go to the next stage",
+		"\"!{0} c3 uulldr\" - draw path from cell C3 to cell B2 where u=up, d=down, l=left, and r=right",
+		"Cell coordinates use letters as the column and numbers as the row. Top left cell is A1",
+	}.Join(" | ");
 
 	public GameObject GridOutlinePrefab;
 	public Transform GridContainer;
@@ -278,5 +287,118 @@ public class UnderstandModule : ModuleScript {
 		result.shape = shape;
 		result.Selectable.Parent = Selectable;
 		return result;
+	}
+
+	public IEnumerator ProcessTwitchCommand(string command) {
+		command = command.Trim().ToLower();
+		if (command == "previous" || command == "prev") {
+			yield return null;
+			if (currentStageIndex == 0) {
+				yield return "sendtochaterror {0}, !{1}: The previous stage does not exist";
+				yield break;
+			}
+			yield return new[] { BackButton.Selectable };
+			yield break;
+		}
+		if (command == "next") {
+			yield return null;
+			if (currentStageIndex == passedStagesCount) {
+				yield return "sendtochaterror {0}, !{1}: The next stage cannot be accessed currently or does not exist";
+				yield break;
+			}
+			yield return new[] { NextButton.Selectable };
+			yield break;
+		}
+		if (!Regex.IsMatch(command, @"^[a-g][1-7](\s+[uldr]+)?$")) yield break;
+		string[] parameters = command.Split(' ').Where(s => s.Length > 0).ToArray();
+		int startX = parameters[0][0] - 'a';
+		int startY = parameters[0][1] - '1';
+		Vector2Int start = new Vector2Int(startX, startY);
+		CellComponent startCell = Cells[start.x][start.y];
+		if (parameters.Length == 1) {
+			yield return null;
+			startCell.Selectable.OnHighlight();
+			yield return new WaitForSeconds(0.1f);
+			startCell.Selectable.OnInteract();
+			yield return new WaitForSeconds(0.1f);
+			startCell.Selectable.OnInteract();
+			yield return new WaitForSeconds(0.1f);
+			startCell.Selectable.OnHighlightEnded();
+			yield break;
+		}
+		Vector2Int pos = start;
+		HashSet<Vector2Int> visitedCoords = new HashSet<Vector2Int>(new[] { start });
+		List<Vector2Int> path = new List<Vector2Int>();
+		Dictionary<char, int> charToDir = new Dictionary<char, int>() { { 'r', 0 }, { 'd', 1 }, { 'l', 2 }, { 'u', 3 } };
+		foreach (char c in parameters[1]) {
+			int dir = charToDir[c];
+			pos += Maze.DD[dir];
+			if (pos.x < 0 || pos.x >= UnderstandPuzzle.SIZE || pos.y < 0 || pos.y >= UnderstandPuzzle.SIZE) {
+				yield return "sendtochaterror {0}, !{1}: The specified path directions would go off the grid";
+				yield break;
+			}
+			if (visitedCoords.Contains(pos)) {
+				yield return "sendtochaterror {0}, !{1}: Unable to visit the same cell twice";
+				yield break;
+			}
+			path.Add(pos);
+			visitedCoords.Add(pos);
+		}
+		yield return null;
+		startCell.Selectable.OnHighlight();
+		yield return new WaitForSeconds(0.1f);
+		startCell.Selectable.OnInteract();
+		yield return new WaitForSeconds(0.1f);
+		startCell.Selectable.OnHighlightEnded();
+		foreach (Vector2Int coord in path) {
+			CellComponent cell = Cells[coord.x][coord.y];
+			cell.Selectable.OnHighlight();
+			yield return new WaitForSeconds(0.1f);
+			if (coord == path.Last()) {
+				cell.Selectable.OnInteract();
+				yield return new WaitForSeconds(0.1f);
+			}
+			cell.Selectable.OnHighlightEnded();
+		}
+	}
+
+	public IEnumerator TwitchHandleForcedSolve() {
+		if (DrawingPath) {
+			Vector2Int lastCoord = Path.Last();
+			CellComponent lastCell = Cells[lastCoord.x][lastCoord.y];
+			lastCell.Selectable.OnInteract();
+			yield return new WaitForSeconds(0.1f);
+			if (SelectedCell != null) {
+				SelectedCell.Selectable.OnHighlightEnded();
+				yield return new WaitForSeconds(0.1f);
+			}
+		}
+		while (currentStageIndex != passedStagesCount) {
+			NextButton.Selectable.OnInteract();
+			yield return new WaitForSeconds(0.2f);
+		}
+		int startStageIndex = passedStagesCount;
+		for (int stageIndex = startStageIndex; stageIndex < UnderstandPuzzle.LEVELS_COUNT; stageIndex++) {
+			Vector2Int[] solution = Puzzle.pathes[stageIndex].ToArray();
+			for (int i = 0; i < solution.Length; i++) {
+				CellComponent cell = Cells[solution[i].x][solution[i].y];
+				cell.Selectable.OnHighlight();
+				yield return new WaitForSeconds(0.1f);
+				if (i == 0) {
+					cell.Selectable.OnInteract();
+					yield return new WaitForSeconds(0.1f);
+				}
+				if (i == solution.Length - 1) {
+					cell.Selectable.OnInteract();
+					yield return new WaitForSeconds(0.1f);
+				}
+				cell.Selectable.OnHighlightEnded();
+			}
+			yield return new WaitForSeconds(0.1f);
+			if (stageIndex != UnderstandPuzzle.LEVELS_COUNT - 1) {
+				NextButton.Selectable.OnInteract();
+				yield return new WaitForSeconds(0.2f);
+			}
+		}
 	}
 }
