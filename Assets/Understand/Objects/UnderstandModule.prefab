@@ -530,11 +530,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: deae55351f5f9b543a0115afc3d60310, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _editorRuleSeed: 1
   GridOutlinePrefab: {fileID: 1194320976421082, guid: b5116d7c1a453b442b269d7fdbf19eaf,
     type: 2}
   GridContainer: {fileID: 4677611491451122}
   StageText: {fileID: 102642652672617344}
   Selectable: {fileID: 114245871756252828}
+  Audio: {fileID: 114707510039019578}
   ShapePrefab: {fileID: 114237125273767040, guid: 63e9ebf2220ac034fa21b1c8fea5fae0,
     type: 2}
   CellPrefab: {fileID: 114125962678359622, guid: b2be65f31438b904daad05e57a50f729,

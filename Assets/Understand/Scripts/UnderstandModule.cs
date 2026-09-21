@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using KeepCoding;
+using System;
 
 public class UnderstandModule : ModuleScript {
 	public const float CELL_SIZE = .018f;
@@ -24,6 +25,13 @@ public class UnderstandModule : ModuleScript {
 	public static readonly Color32 INACTIVE_SHAPE_COLOR = new Color32(0x33, 0x33, 0x33, 0xff);
 	public static readonly Color32 INACTIVE_SHAPE_OUTLINE_COLOR = new Color32(0xaa, 0xaa, 0xaa, 0xff);
 
+	// Sounds
+	public static readonly string SoundChangeStage = "UnderstandChangeStage";
+	public static readonly string SoundSubmit0 = "UnderstandSubmit0";
+	public static readonly string SoundSubmit1 = "UnderstandSubmit1";
+	public static readonly string SoundCorrect = "UnderstandCorrect";
+	public static readonly string SoundStartPath = "UnderstandStartPath";
+
 	public readonly string TwitchHelpMessage = new[] {
 		"\"!{0} prev\" - go to the previous stage",
 		"\"!{0} next\" - go to the next stage",
@@ -35,6 +43,7 @@ public class UnderstandModule : ModuleScript {
 	public Transform GridContainer;
 	public TextMesh StageText;
 	public KMSelectable Selectable;
+	public KMAudio Audio;
 	public ShapeComponent ShapePrefab;
 	public CellComponent CellPrefab;
 	public GameObject PathPrefab;
@@ -131,6 +140,7 @@ public class UnderstandModule : ModuleScript {
 		NextButton.active = true;
 		BackButton.active = currentStageIndex > 0;
 		StageText.text = string.Format("{0}/{1}", currentStageIndex + 1, UnderstandPuzzle.LEVELS_COUNT);
+		Audio.PlaySoundAtTransform(SoundChangeStage, transform);
 	}
 
 	private void OnNextButtonPressed() {
@@ -142,6 +152,7 @@ public class UnderstandModule : ModuleScript {
 		NextButton.active = currentStageIndex < passedStagesCount && currentStageIndex + 1 != UnderstandPuzzle.LEVELS_COUNT;
 		BackButton.active = true;
 		StageText.text = string.Format("{0}/{1}", currentStageIndex + 1, UnderstandPuzzle.LEVELS_COUNT);
+		Audio.PlaySoundAtTransform(SoundChangeStage, transform);
 	}
 
 	private void RenderStage() {
@@ -201,10 +212,12 @@ public class UnderstandModule : ModuleScript {
 			DrawingPath = false;
 			UpdateCellColor(cell);
 			UpdateRulesValidities();
-			if (ruleIndicators.All(ind => ind.state == RuleIndicatorComponent.State.PASS)) OnStagePassed(currentStageIndex);
+			int passedRulesCount = ruleIndicators.Count(ind => ind.state == RuleIndicatorComponent.State.PASS);
+			if (passedRulesCount == ruleIndicators.Length) OnStagePassed(currentStageIndex);
 			else if (currentStageIndex == UnderstandPuzzle.LEVELS_COUNT - 1) {
 				foreach (RuleIndicatorComponent ruleIndicator in ruleIndicators) ruleIndicator.state = RuleIndicatorComponent.State.OFF;
-			}
+				Audio.PlaySoundAtTransform(SoundSubmit0, transform);
+			} else Audio.PlaySoundAtTransform(passedRulesCount + 1 == ruleIndicators.Length ? SoundSubmit1 : SoundSubmit0, transform);
 			return;
 		}
 		foreach (Vector2Int coord in Path) {
@@ -218,6 +231,7 @@ public class UnderstandModule : ModuleScript {
 		foreach (RuleIndicatorComponent ruleIndicator in ruleIndicators) ruleIndicator.state = RuleIndicatorComponent.State.OFF;
 		UpdatePath();
 		UpdateCellColor(cell);
+		Audio.PlaySoundAtTransform(SoundStartPath, transform);
 	}
 
 	private void UpdateRulesValidities() {
@@ -229,12 +243,15 @@ public class UnderstandModule : ModuleScript {
 	}
 
 	private void OnStagePassed(int stageIndex) {
-		if (passedStagesCount > stageIndex) return;
-		passedStagesCount = stageIndex + 1;
+		passedStagesCount = Math.Max(passedStagesCount, stageIndex + 1);
 		if (passedStagesCount == UnderstandPuzzle.LEVELS_COUNT) {
 			Solve();
 			StageText.text = "GG";
-		} else NextButton.active = true;
+			Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.CorrectChime, transform);
+		} else {
+			NextButton.active = true;
+			Audio.PlaySoundAtTransform(SoundCorrect, transform);
+		}
 	}
 
 	private void UpdatePath() {
